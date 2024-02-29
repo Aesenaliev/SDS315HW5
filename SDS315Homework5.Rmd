@@ -1,0 +1,189 @@
+---
+title: "Homework05"
+author: "Arthur Esenaliev"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Arthur Esenaliev
+are2376
+[https://github.com/Aesenaliev/SDS315HW5](https://github.com/Aesenaliev/SDS315HW5)
+
+```{r setup, include=FALSE, message = F, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mosaic)
+library(stringr)
+library(kableExtra)
+library(tidyverse)
+options(scipen = 999)
+```
+
+## Question 1
+
+
+```{r echo = FALSE}
+
+sim_trades = do(100000) * nflip(n = 2021, prob = 0.024)
+ggplot(sim_trades) +
+  geom_histogram(aes(x = nflip), bins = 30) +
+  xlab("Flagged Trades") +
+  labs(title = "100,000 simulations of flagged trades by the SEC") +
+  geom_vline(xintercept = 70, color = "black") 
+trades_sum = sum(sim_trades >= 70)
+
+
+```
+Null hypothesis is that Iron Bank are flagged at the same 2.4% baseline rate as that of other traders
+Test statistic is flagged trades by Iron Bank. In our data, 70 of 2021 trades were flagged.
+`r trades_sum` out of 100,000 which is `r (trades_sum/100000)*100`%. Our p value P(>= 70 flagged trades) = `r (trades_sum/100000)`.
+Since the p value is less than 0.05, we can reject the null hypothesis, and is statistically significant. There is a `r (trades_sum/100000)*100`% chance of observing a test statistic as extreme as or more extreme than observed, given that the null hypothesis is true.
+
+The null hypothesis does not seem plausible in the light of the data because there is evidence against the null, if the null were true, the chances of getting that 70 or more flagged trades was only `r (trades_sum/100000)*100`% chance which is very low.
+
+\newpage
+
+## Question 2
+
+The null hypothesis is that Gourmet Bites is the same as the city's 3% baseline rate for health code violations.
+The test statistic is total number of health violations at Gourmet Bites. In our data, 8 of 50 inspection resulted in health code violations
+
+```{r echo = FALSE}
+
+sim_gb = do(100000) * nflip(n = 50, prob = 0.03)
+ggplot(sim_gb) +
+  geom_histogram(aes(x = nflip), bins = 10) +
+  xlab("Health Inspection Violations") +
+  labs(title = "100,000 simulations of Gourmet Bite Health Code Violations") +
+  geom_vline(xintercept = 8, color = "black") 
+gb_sum = sum(sim_gb >= 8)
+```
+
+`r gb_sum` out of 100,000 is `r (gb_sum/100000)*100`%. Our p value P(>= 8 violations) = `r (gb_sum/100000)`. Since the p value is less than 0.05, we can reject the null hypothesis, and is statistically significant. There is a `r (gb_sum/100000)*100`% chance of observing a health code violations as extreme as or more extreme as observed given that the null hypothesis is true.
+
+The null hypothesis does not seem plausible in the light of the data because there is evidence against the null, if the null were true, the chances of getting 8 violations out of 50 are extremely low (`r (gb_sum/100000)*100`%). 
+
+\newpage
+
+## Question 3
+
+### Part A
+
+```{r echo = FALSE, include = FALSE}
+data <- readLines("C:/Users/aesen/OneDrive - The University of Texas at Austin/Downloads/brown_sentences.txt")
+letter_frequencies <- read.csv("letter_frequencies.csv")
+clean_text <- gsub("[^A-Za-z]", "", data)
+clean_text <- toupper(clean_text)
+
+observed_counts_list <- list()
+expected_counts_list <- list()
+
+for (sentence in clean_text) {
+  observed_counts = table(factor(strsplit(sentence, "")[[1]], levels = letter_frequencies$Letter))
+  total_letters = sum(observed_counts)
+  expected_counts = total_letters * letter_frequencies$Probability
+  observed_counts_list[[length(observed_counts_list) + 1]] = observed_counts
+  expected_counts_list[[length(expected_counts_list) + 1]] = expected_counts
+}
+
+observed_df <- do.call(rbind, observed_counts_list)
+expected_df <- do.call(rbind, expected_counts_list)
+
+chi_stat_sum_list = list()
+
+for (i in 1:length(observed_counts_list)) {
+  observed = observed_counts_list[[i]]
+  expected = expected_counts_list[[i]]
+  chi_stat = (observed - expected)^2 / expected
+  chi_stat_sum = sum(chi_stat)
+  chi_stat_sum_list[[i]] = chi_stat_sum
+}
+
+
+```
+
+
+```{r echo = FALSE, include = FALSE}
+chi_df = do.call(rbind, chi_stat_sum_list)
+chi_df = as.data.frame(chi_df)
+names(chi_df)[1] = "chi_square"
+```
+
+```{r, echo = FALSE}
+ggplot(chi_df) + geom_histogram(aes(x = chi_square), bins = 30) +
+  labs(title = "Chi Square Values in normal English sentences") 
+```
+`
+```{r echo = FALSE, include = FALSE}
+
+sentences <- c(
+  "She opened the book and started to read the first chapter, eagerly anticipating what might come next.",
+  "Despite the heavy rain, they decided to go for a long walk in the park, crossing the main avenue by the fountain in the center.",
+  "The museum’s new exhibit features ancient artifacts from various civilizations around the world.",
+  "He carefully examined the document, looking for any clues that might help solve the mystery.",
+  "The students gathered in the auditorium to listen to the guest speaker’s inspiring lecture.",
+  "Feeling vexed after an arduous and zany day at work, she hoped for a peaceful and quiet evening at home, cozying up after a quick dinner with some TV, or maybe a book on her upcoming visit to Auckland.",
+  "The chef demonstrated how to prepare a delicious meal using only locally sourced ingredients, focusing mainly on some excellent dinner recipes from Spain.",
+  "They watched the sunset from the hilltop, marveling at the beautiful array of colors in the sky.",
+  "The committee reviewed the proposal and provided many points of useful feedback to improve the project’s effectiveness.",
+  "Despite the challenges faced during the project, the team worked tirelessly to ensure its successful completion, resulting in a product that exceeded everyone’s expectations."
+)
+
+sen_clean <- gsub("[^A-Za-z]", "", sentences)
+sen_clean <- toupper(sen_clean)
+
+
+observed_counts_list2 <- list()
+expected_counts_list2 <- list()
+
+for (sentence in sen_clean) {
+  observed_counts2 = table(factor(strsplit(sentence, "")[[1]], levels = letter_frequencies$Letter))
+  total_letters2 = sum(observed_counts2)
+  expected_counts2 = total_letters2 * letter_frequencies$Probability
+  observed_counts_list2[[length(observed_counts_list2) + 1]] = observed_counts2
+  expected_counts_list2[[length(expected_counts_list2) + 1]] = expected_counts2
+}
+
+observed_df2 <- do.call(rbind, observed_counts_list2)
+expected_df2 <- do.call(rbind, expected_counts_list2)
+
+chi_stat_sum_list2 = list()
+
+for (i in 1:length(observed_counts_list2)) {
+  observed2 = observed_counts_list2[[i]]
+  expected2 = expected_counts_list2[[i]]
+  chi_stat2 = (observed2 - expected2)^2 / expected2
+  chi_stat_sum2 = sum(chi_stat2)
+  chi_stat_sum_list2[[i]] = chi_stat_sum2
+}
+
+chi_df2 = do.call(rbind, chi_stat_sum_list2)
+chi_df2 = as.data.frame(chi_df2)
+names(chi_df2)[1] = "chi_square"
+```
+```{r echo = FALSE, include = FALSE}
+
+p_val_func <- function(chi_square) {
+  chi_sum = sum(chi_df >= chi_square)
+  p_value = chi_sum/nrow(chi_df)
+  return(round(p_value,3))
+}
+
+p_val_list = c(p_val_func(22.930848),p_val_func(13.051050),p_val_func(46.285861),p_val_func(23.546278),p_val_func(23.676149),p_val_func(96.452677),p_val_func(28.271419),p_val_func(9.635023),p_val_func(44.928631),p_val_func(49.960559))
+
+
+p_val_df = data.frame(
+  Sentence = c("1","2","3","4","5","6","7","8","9","10"),
+  P_Value = p_val_list
+)
+
+```
+
+```{r echo = FALSE}
+
+kbl(p_val_df)
+
+```
+
+The sentence is 6 because the p value is less than 0.05 and much lower and the other sentences. There is a 0.9% chance that the sentence follows the typical English letter distribution.
